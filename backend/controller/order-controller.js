@@ -1,5 +1,6 @@
 import Order from "../models/Order.js";
 import Stock from "../models/Stock.js";
+import User from '../models/User.js';
 import mongoose from "mongoose";
 
 export const placeOrder = async (req, res) => {
@@ -8,10 +9,20 @@ export const placeOrder = async (req, res) => {
 
   try {
     const retailerId = req.user.userId;
-    const { items, latitude, longitude } = req.body;
+    const { items } = req.body;
 
     if (!items?.length) {
       throw new Error("No items provided");
+    }
+
+    const retailer = await User.findById(retailerId);
+
+    if (
+      !retailer?.location ||
+      !Array.isArray(retailer.location.coordinates) ||
+      retailer.location.coordinates.length !== 2
+    ) {
+      throw new Error("Retailer location not found");
     }
 
     let orderItems = [];
@@ -33,7 +44,7 @@ export const placeOrder = async (req, res) => {
       let requiredQty = item.quantity;
 
       const stocks = await Stock.find({
-        productName: item.name,
+        productId: item._id,
         quantity: { $gt: 0 }
       }).sort({ quantity: -1 }).session(session);
 
@@ -46,7 +57,7 @@ export const placeOrder = async (req, res) => {
           productId: stock._id,
           name: stock.productName,
           quantity: usedQty,
-          price: stock.pricePerUnit,     
+          price: stock.pricePerUnit,
           wholesaler: stock.wholesaler
         });
 
@@ -64,9 +75,9 @@ export const placeOrder = async (req, res) => {
       totalAmount,
       deliveryLocation: {
         type: "Point",
-        coordinates: [longitude, latitude]
+        coordinates: retailer.location.coordinates 
       },
-      status: "CREATED" 
+      status: "CREATED"
     }], { session });
 
     await session.commitTransaction();
@@ -81,7 +92,6 @@ export const placeOrder = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
 
-    console.error(err);
     return res.status(400).json({
       success: false,
       message: err.message
