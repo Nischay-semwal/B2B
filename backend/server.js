@@ -7,6 +7,7 @@ import authRoute from './routes/authRoute.js';
 import orderRoute from './routes/orderRoute.js';
 import adminRoute from './routes/adminRoute.js';
 import stockRoute from './routes/stockRoute.js';
+import path from 'path';
 
 dotenv.config();
 const app = express();
@@ -20,6 +21,7 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+app.use('/uploads',express.static(path.join(process.cwd(),'uploads')))
 app.use('/api/auth',authRoute);
 app.use('/api/orders',orderRoute);
 app.use('/api/admin',adminRoute);

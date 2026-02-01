@@ -11,6 +11,10 @@ export const addStock = async (req, res) => {
         message: "Name, price and quantity are required",
       });
     }
+    
+    const imagePath = req.file
+      ? `/uploads/${req.file.filename}`
+      : null;
 
     const stock = await Stock.create({
       wholesaler: wholesalerId,
@@ -18,6 +22,7 @@ export const addStock = async (req, res) => {
       pricePerUnit,
       quantity,
       category,
+      image : imagePath
     });
     
     return res.status(201).json({
@@ -122,6 +127,29 @@ export const deleteStock = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
+    });
+  }
+};
+
+export const getAvailableStocks = async (req, res) => {
+  try {
+    const stocks = await Stock.find({
+      isActive: true,
+      quantity: { $gt: 0 }
+    })
+      .populate("wholesaler", "name")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: stocks.length,
+      data: stocks
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch stocks"
     });
   }
 };

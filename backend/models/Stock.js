@@ -8,6 +8,10 @@ const stockSchema = new mongoose.Schema(
       required: true
     },
 
+    image : {
+      type : String
+    },
+
     productName: {
       type: String,
       required: true
